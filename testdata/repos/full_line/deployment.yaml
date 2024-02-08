@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authgoogle-operator
+  namespace: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: authgoogle-operator
+  template:
+    metadata:
+      labels:
+        app: platform-authgoogle-operator
+        name: authgoogle-operator
+    spec:
+      containers:
+        - name: authgoogle-operator
+          image: europe-docker.pkg.dev/qover-platform/cr/operators/authgoogle:20230619-105141_1764kd74
+          imagePullPolicy: IfNotPresent
