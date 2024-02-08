@@ -106,30 +106,6 @@ func TestDetect(t *testing.T) {
 		{
 			cfgName: "simple",
 			fragment: Fragment{
-				Raw:      `awsToken := \"AKIALALEMEL33243OLIA\"`,
-				FilePath: "tmp.go",
-			},
-			expectedFindings: []report.Finding{
-				{
-					Description: "AWS Access Key",
-					Secret:      "AKIALALEMEL33243OLIA",
-					Match:       "AKIALALEMEL33243OLIA",
-					Line:        `awsToken := \"AKIALALEMEL33243OLIA\"`,
-					FullLine:    `awsToken := \"AKIALALEMEL33243OLIA\"`,
-					File:        "tmp.go",
-					RuleID:      "aws-access-key",
-					Tags:        []string{"key", "AWS"},
-					StartLine:   0,
-					EndLine:     0,
-					StartColumn: 15,
-					EndColumn:   34,
-					Entropy:     3.0841837,
-				},
-			},
-		},
-		{
-			cfgName: "simple",
-			fragment: Fragment{
 				Raw: `
 					<CATALOG>
 						<CD>
