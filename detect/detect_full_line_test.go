@@ -31,7 +31,7 @@ func TestDetectWithFullLine(t *testing.T) {
 			source:  filepath.Join(repoBasePath, "full_line"),
 			cfgName: "simple",
 			expectedFindings: []report.Finding{
-				{
+				{ // this finding is from a single partial line change in a big xml file
 					Description: "AWS Access Key",
 					StartLine:   8,
 					EndLine:     8,
@@ -54,6 +54,7 @@ func TestDetectWithFullLine(t *testing.T) {
 					Tags:        []string{"key", "AWS"},
 				},
 				{
+					// this finding is from a file where all contents is on the same line
 					Description: "Github Personal Access Token",
 					StartLine:   1,
 					EndLine:     1,
@@ -76,6 +77,7 @@ func TestDetectWithFullLine(t *testing.T) {
 					Tags:        []string{"key", "Github"},
 				},
 				{
+					// this finding is from a partial line change in a yml file
 					Description: "Github Personal Access Token",
 					StartLine:   19,
 					EndLine:     19,
@@ -98,6 +100,7 @@ func TestDetectWithFullLine(t *testing.T) {
 					Tags:        []string{"key", "Github"},
 				},
 				{
+					// this finding is from a big file change in a big xml file
 					Description: "AWS Access Key",
 					Secret:      "AKIALALEMEL33243OLIA",
 					Match:       "AKIALALEMEL33243OLIA",
@@ -119,6 +122,7 @@ func TestDetectWithFullLine(t *testing.T) {
 					Fingerprint: "e654f5bf0f10926b828ccf8f07b5b2f49fd0a179:test.xml:aws-access-key:185",
 				},
 				{
+					// this finding is from a big file change in a big xml file
 					Description: "AWS Access Key",
 					Secret:      "AKIAJWY75QGOEOC2J5GA",
 					Match:       "AKIAJWY75QGOEOC2J5GA",
