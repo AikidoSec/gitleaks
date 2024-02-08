@@ -16,5 +16,5 @@ spec:
     spec:
       containers:
         - name: authgoogle-operator
-          image: europe-docker.pkg.dev/qover-platform/cr/operators/authgoogle:20230619-105141_1764kd74
+          image: europe-docker.pkg.dev/qover-platform/cr/operators/authgoogle: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
           imagePullPolicy: IfNotPresent
