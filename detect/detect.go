@@ -284,7 +284,7 @@ func (d *Detector) detectRule(fragment Fragment, rule config.Rule) []report.Find
 			Match:       secret,
 			Tags:        rule.Tags,
 			Line:        fragment.Raw[loc.startLineIndex:loc.endLineIndex],
-			FullLine:    strings.TrimSpace(fragment.Raw[loc.startLineIndex:loc.endLineIndex]),
+			FullLine:    getFullLine(fragment, loc, secret),
 		}
 
 		if strings.Contains(fragment.Raw[loc.startLineIndex:loc.endLineIndex],
@@ -405,4 +405,16 @@ func (d *Detector) addFinding(finding report.Finding) {
 // addCommit synchronously adds a commit to the commit slice
 func (d *Detector) addCommit(commit string) {
 	d.commitMap[commit] = true
+}
+
+func getFullLine(frag Fragment, loc Location, secret string) string {
+	full_line := strings.TrimSpace(frag.Raw[loc.startLineIndex:loc.endLineIndex])
+
+	// if line is longer than 250 chars, its most likely found in a minified file
+	// just return secret in this case
+	if len(full_line) > 250 {
+		return secret
+	}
+
+	return full_line
 }
