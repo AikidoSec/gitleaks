@@ -1,6 +1,7 @@
 package detect
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,29 +12,24 @@ import (
 
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/report"
+	"github.com/zricethezav/gitleaks/v8/sources"
 )
 
 // var configPath = "../testdata/config/"
 // const repoBasePath = "../testdata/repos/"
 
-const fixturesBasePath = "../testdata/full_line"
+// const fixturesBasePath = "../testdata/full_line"
 
 func TestDetectWithFullLine(t *testing.T) {
 	tests := []struct {
-		cfgName      string
-		baselinePath string
-		fixture      string
-		// NOTE: for expected findings, all line numbers will be 0
-		// because line deltas are added _after_ the finding is created.
-		// I.e., if the finding is from a --no-git file, the line number will be
-		// increase by 1 in DetectFromFiles(). If the finding is from git,
-		// the line number will be increased by the patch delta.
+		cfgName          string
+		source           string
+		logOpts          string
 		expectedFindings []report.Finding
-		wantError        error
 	}{
 		{
+			source:  filepath.Join(repoBasePath, "full_line"),
 			cfgName: "simple",
-			fixture: "test.xml",
 			expectedFindings: []report.Finding{
 				{
 					Description: "AWS Access Key",
@@ -41,14 +37,20 @@ func TestDetectWithFullLine(t *testing.T) {
 					Match:       "AKIALALEMEL33243OLIA",
 					Line:        "\n        <TOKEN>AKIALALEMEL33243OLIA</TOKEN>",
 					FullLine:    `<TOKEN>AKIALALEMEL33243OLIA</TOKEN>`,
-					File:        "tmp.go",
+					File:        "test.xml",
 					RuleID:      "aws-access-key",
 					Tags:        []string{"key", "AWS"},
-					StartLine:   184,
-					EndLine:     184,
+					StartLine:   185,
+					EndLine:     185,
 					StartColumn: 17,
 					EndColumn:   36,
 					Entropy:     3.0841837,
+					Commit:      "e654f5bf0f10926b828ccf8f07b5b2f49fd0a179",
+					Author:      "Kemosabert",
+					Email:       "bert.coppens14@gmail.com",
+					Date:        "2024-02-08T09:09:55Z",
+					Message:     "add test file",
+					Fingerprint: "e654f5bf0f10926b828ccf8f07b5b2f49fd0a179:test.xml:aws-access-key:185",
 				},
 				{
 					Description: "AWS Access Key",
@@ -56,23 +58,32 @@ func TestDetectWithFullLine(t *testing.T) {
 					Match:       "AKIAJWY75QGOEOC2J5GA",
 					Line:        "\n        <TITLE>AKIAJWY75QGOEOC2J5GA</TITLE>",
 					FullLine:    `<TITLE>AKIAJWY75QGOEOC2J5GA</TITLE>`,
-					File:        "tmp.go",
+					File:        "test.xml",
 					RuleID:      "aws-access-key",
 					Tags:        []string{"key", "AWS"},
-					StartLine:   203,
-					EndLine:     203,
+					StartLine:   204,
+					EndLine:     204,
 					StartColumn: 17,
 					EndColumn:   36,
 					Entropy:     3.6841838,
+					Commit:      "e654f5bf0f10926b828ccf8f07b5b2f49fd0a179",
+					Author:      "Kemosabert",
+					Email:       "bert.coppens14@gmail.com",
+					Date:        "2024-02-08T09:09:55Z",
+					Message:     "add test file",
+					Fingerprint: "e654f5bf0f10926b828ccf8f07b5b2f49fd0a179:test.xml:aws-access-key:204",
 				},
 			},
 		},
 	}
 
+	moveDotGit(t, "dotGit", ".git")
+	defer moveDotGit(t, ".git", "dotGit")
+
 	for _, tt := range tests {
-		viper.Reset()
+
 		viper.AddConfigPath(configPath)
-		viper.SetConfigName(tt.cfgName)
+		viper.SetConfigName("simple")
 		viper.SetConfigType("toml")
 		err := viper.ReadInConfig()
 		require.NoError(t, err)
@@ -81,17 +92,30 @@ func TestDetectWithFullLine(t *testing.T) {
 		err = viper.Unmarshal(&vc)
 		require.NoError(t, err)
 		cfg, err := vc.Translate()
-		cfg.Path = filepath.Join(configPath, tt.cfgName+".toml")
-		assert.Equal(t, tt.wantError, err)
-		d := NewDetector(cfg)
-		d.baselinePath = tt.baselinePath
+		require.NoError(t, err)
+		detector := NewDetector(cfg)
 
-		data, err := os.ReadFile(filepath.Join(fixturesBasePath, tt.fixture))
-		assert.Nil(t, err)
+		var ignorePath string
+		info, err := os.Stat(tt.source)
+		require.NoError(t, err)
 
-		fragment := Fragment{Raw: string(data), FilePath: "tmp.go"}
+		if info.IsDir() {
+			ignorePath = filepath.Join(tt.source, ".gitleaksignore")
+		} else {
+			ignorePath = filepath.Join(filepath.Dir(tt.source), ".gitleaksignore")
+		}
+		err = detector.AddGitleaksIgnore(ignorePath)
+		require.NoError(t, err)
 
-		findings := d.Detect(fragment)
+		gitCmd, err := sources.NewGitLogCmd(tt.source, tt.logOpts)
+		require.NoError(t, err)
+		findings, err := detector.DetectGit(gitCmd)
+		fmt.Printf("%+v", err)
+		require.NoError(t, err)
+
+		for _, f := range findings {
+			f.Match = "" // remove lines cause copying and pasting them has some wack formatting
+		}
 		assert.ElementsMatch(t, tt.expectedFindings, findings)
 	}
 }
