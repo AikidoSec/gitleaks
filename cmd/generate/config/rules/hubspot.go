@@ -29,6 +29,7 @@ func HubSpotPrivateAppAccessToken() *config.Rule {
 		RuleID:      "hubspot-private-app-access-token",
 		Regex: generateSemiGenericRegex([]string{"hubspot"},
 			`pat-(?:eu|na)\d-[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}`, true),
+		Keywords: []string{"hubspot"},
 	}
 
 	// validate
@@ -48,6 +49,7 @@ func HubSpotDeveloperAPIKey() *config.Rule {
 			`(?:eu|na)\d-(?:[0-9A-F]{4}-){4}[0-9A-F]{12}`,
 			true,
 		),
+		Keywords: []string{"hubspot"},
 	}
 
 	// validate
