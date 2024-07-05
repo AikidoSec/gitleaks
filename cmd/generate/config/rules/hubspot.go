@@ -19,6 +19,7 @@ func HubSpotAPIKey() *config.Rule {
 	// validate
 	tps := []string{
 		`const hubspotKey = "12345678-ABCD-ABCD-ABCD-1234567890AB"`, // gitleaks:allow
+		generateSampleSecret("hubspot", "12345678-ABCD-ABCD-ABCD-1234567890AB"),
 		generateSampleSecret("hubspot", secrets.NewSecret(hex8_4_4_4_12())),
 	}
 	return validate(r, tps, nil)
@@ -36,17 +37,17 @@ func HubSpotPrivateAppAccessToken() *config.Rule {
 
 	// validate
 	tps := []string{
-		"const hubspotKey = pat-eu1-12345678-ABCD-ABCD-ABCD-1234567890AB", // gitleaks:allow
-		"const hubspotKey = pat-na1-12345678-ABCD-ABCD-ABCD-1234567890AB", // gitleaks:allow
+		generateSampleSecret("hubspot", "pat-eu1-12345678-ABCD-ABCD-ABCD-1234567890AB"), // gitleaks:allow
+		generateSampleSecret("hubspot", "pat-na1-12345678-ABCD-ABCD-ABCD-1234567890AB"), // gitleaks:allow
 		generateSampleSecret("hubspot", "pat-eu1-"+secrets.NewSecret(hex8_4_4_4_12())),
 		generateSampleSecret("hubspot", "pat-na1-"+secrets.NewSecret(hex8_4_4_4_12())),
 	}
 	fps := []string{
 		// Regular HubSpot API Key
-		`const hubspotKey = "12345678-ABCD-ABCD-ABCD-1234567890AB"`, // gitleaks:allow
+		generateSampleSecret("hubspot", "12345678-ABCD-ABCD-ABCD-1234567890AB"), // gitleaks:allow
 		// Developer API Tokens
-		"eu1-1234-ABCD-1234-ABCD-1234567890AB", // gitleaks:allow
-		"na1-1234-ABCD-1234-ABCD-1234567890AB", // gitleaks:allow
+		generateSampleSecret("hubspot", "eu1-1234-ABCD-1234-ABCD-1234567890AB"), // gitleaks:allow
+		generateSampleSecret("hubspot", "na1-1234-ABCD-1234-ABCD-1234567890AB"), // gitleaks:allow
 		generateSampleSecret("hubspot", "eu1-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("12"))),
 		generateSampleSecret("hubspot", "na1-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("12"))),
 	}
@@ -66,17 +67,17 @@ func HubSpotDeveloperAPIKey() *config.Rule {
 
 	// validate
 	tps := []string{
-		"const hubspotKey = eu1-1234-ABCD-1234-ABCD-1234567890AB", // gitleaks:allow
-		"const hubspotKey = na1-1234-ABCD-1234-ABCD-1234567890AB", // gitleaks:allow
+		generateSampleSecret("hubspot", "eu1-1234-ABCD-1234-ABCD-1234567890AB"), // gitleaks:allow
+		generateSampleSecret("hubspot", "na1-1234-ABCD-1234-ABCD-1234567890AB"), // gitleaks:allow
 		generateSampleSecret("hubspot", "eu1-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("12"))),
 		generateSampleSecret("hubspot", "na1-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("4"))+"-"+secrets.NewSecret(hex("12"))),
 	}
 	fps := []string{
 		// Regular HubSpot API Key
-		`const hubspotKey = "12345678-ABCD-ABCD-ABCD-1234567890AB"`, // gitleaks:allow
+		generateSampleSecret("hubspot", "12345678-ABCD-ABCD-ABCD-1234567890AB"), // gitleaks:allow
 		// Private App Access Tokens
-		"pat-eu1-12345678-ABCD-ABCD-ABCD-1234567890AB", // gitleaks:allow
-		"pat-na1-12345678-ABCD-ABCD-ABCD-1234567890AB", // gitleaks:allow
+		generateSampleSecret("hubspot", "pat-eu1-12345678-ABCD-ABCD-ABCD-1234567890AB"), // gitleaks:allow
+		generateSampleSecret("hubspot", "pat-na1-12345678-ABCD-ABCD-ABCD-1234567890AB"), // gitleaks:allow
 		generateSampleSecret("hubspot", "pat-eu1-"+secrets.NewSecret(hex8_4_4_4_12())),
 		generateSampleSecret("hubspot", "pat-na1-"+secrets.NewSecret(hex8_4_4_4_12())),
 	}
