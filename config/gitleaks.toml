@@ -172,7 +172,7 @@ keywords = [
 [[rules]]
 id = "chargebee-access-token"
 description = "Found a Chargebee Access Token, posing a risk to subscription management, payment processing services and sensitive financial data."
-regex = '''(?i)\b((test|live)_[0-9a-zA-Z]{32,34})(?:['|\"|\n|\r|\s|\x60|;]|$)'''
+regex = '''\b((test|live)_[0-9a-zA-Z]{32,34})(?:['|\"|\n|\r|\s|\x60|;]|$)'''
 keywords = [
     "test_","live_",
 ]

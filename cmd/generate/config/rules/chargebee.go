@@ -10,7 +10,7 @@ func ChargebeeAccessToken() *config.Rule {
 	r := config.Rule{
 		Description: "Found a Chargebee Access Token, posing a risk to subscription management, payment processing services and sensitive financial data.",
 		RuleID:      "chargebee-access-token",
-		Regex:       generateUniqueTokenRegex(`(test|live)_[0-9a-zA-Z]{32,34}`, true),
+		Regex:       generateUniqueTokenRegex(`(test|live)_[0-9a-zA-Z]{32,34}`, false),
 		Keywords: []string{
 			"test_",
 			"live_",
@@ -19,6 +19,12 @@ func ChargebeeAccessToken() *config.Rule {
 
 	// validate
 	tps := []string{"chargebeeToken := \"test_" + secrets.NewSecret(alphaNumeric("32")) + "\""}
-	fps := []string{"nonMatchingToken := \"" + secrets.NewSecret(alphaNumeric("32")) + "\""}
+	fps := []string{
+		"nonMatchingToken := \"" + secrets.NewSecret(alphaNumeric("32")) + "\"",
+		"Test_HttpClientBasedGraphQlQueryPoster",
+		"Test_SetupInvoiceAddressOnPOGCustomer",
+		"Test_FetchAccountsWithUpdatedAtFilter",
+		"Test_GetCustomerInvoiceAttachmentsInfo",
+	}
 	return validate(r, tps, fps)
 }
