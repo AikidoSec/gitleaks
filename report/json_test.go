@@ -24,6 +24,7 @@ func TestWriteJSON(t *testing.T) {
 
 					Description: "",
 					RuleID:      "test-rule",
+					FullLine:    "",
 					Match:       "line containing secret",
 					Secret:      "a secret",
 					StartLine:   1,
