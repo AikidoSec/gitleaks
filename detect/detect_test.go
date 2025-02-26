@@ -4,19 +4,47 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/zricethezav/gitleaks/v8/cmd/scm"
 	"github.com/zricethezav/gitleaks/v8/config"
+	"github.com/zricethezav/gitleaks/v8/regexp"
 	"github.com/zricethezav/gitleaks/v8/report"
 	"github.com/zricethezav/gitleaks/v8/sources"
 )
 
+const maxDecodeDepth = 8
 const configPath = "../testdata/config/"
 const repoBasePath = "../testdata/repos/"
+const b64TestValues = `
+# Decoded
+-----BEGIN PRIVATE KEY-----
+135f/bRUBHrbHqLY/xS3I7Oth+8rgG+0tBwfMcbk05Sgxq6QUzSYIQAop+WvsTwk2sR+C38g0Mnb
+u+QDkg0spw==
+-----END PRIVATE KEY-----
+
+# Encoded
+private_key: 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCjQzNWYvYlJVQkhyYkhxTFkveFMzSTdPdGgrOHJnRyswdEJ3Zk1jYmswNVNneHE2UVV6U1lJUUFvcCtXdnNUd2syc1IrQzM4ZzBNbmIKdStRRGtnMHNwdz09Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K'
+
+# Double Encoded: b64 encoded aws config inside a jwt
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiY29uZmlnIjoiVzJSbFptRjFiSFJkQ25KbFoybHZiaUE5SUhWekxXVmhjM1F0TWdwaGQzTmZZV05qWlhOelgydGxlVjlwWkNBOUlFRlRTVUZKVDFOR1QwUk9UamRNV0UweE1FcEpDbUYzYzE5elpXTnlaWFJmWVdOalpYTnpYMnRsZVNBOUlIZEtZV3h5V0ZWMGJrWkZUVWt2U3pkTlJFVk9SeTlpVUhoU1ptbERXVVZHVlVORWJFVllNVUVLIiwiaWF0IjoxNTE2MjM5MDIyfQ.8gxviXEOuIBQk2LvTYHSf-wXVhnEKC3h4yM5nlOF4zA
+
+# A small secret at the end to make sure that as the other ones above shrink
+# when decoded, the positions are taken into consideratoin for overlaps
+c21hbGwtc2VjcmV0
+
+# This tests how it handles when the match bounds go outside the decoded value
+secret=ZGVjb2RlZC1zZWNyZXQtdmFsdWU=
+# The above encoded again
+c2VjcmV0PVpHVmpiMlJsWkMxelpXTnlaWFF0ZG1Gc2RXVT0=
+`
 
 func TestDetect(t *testing.T) {
 	tests := []struct {
@@ -37,7 +65,6 @@ func TestDetect(t *testing.T) {
 				Raw:      `awsToken := \"AKIALALEMEL33243OKIA\ // gitleaks:allow"`,
 				FilePath: "tmp.go",
 			},
-			expectedFindings: []report.Finding{},
 		},
 		{
 			cfgName: "simple",
@@ -49,7 +76,6 @@ func TestDetect(t *testing.T) {
 		        `,
 				FilePath: "tmp.go",
 			},
-			expectedFindings: []report.Finding{},
 		},
 		{
 			cfgName: "simple",
@@ -199,7 +225,6 @@ func TestDetect(t *testing.T) {
 				Raw:      `awsToken := \"AKIALALEMEL33243OLIA\"`,
 				FilePath: "tmp.go",
 			},
-			expectedFindings: []report.Finding{},
 		},
 		{
 			cfgName: "allow_path",
@@ -207,7 +232,6 @@ func TestDetect(t *testing.T) {
 				Raw:      `awsToken := \"AKIALALEMEL33243OLIA\"`,
 				FilePath: "tmp.go",
 			},
-			expectedFindings: []report.Finding{},
 		},
 		{
 			cfgName: "allow_commit",
@@ -216,7 +240,6 @@ func TestDetect(t *testing.T) {
 				FilePath:  "tmp.go",
 				CommitSHA: "allowthiscommit",
 			},
-			expectedFindings: []report.Finding{},
 		},
 		{
 			cfgName: "entropy_group",
@@ -247,7 +270,6 @@ func TestDetect(t *testing.T) {
 				Raw:      `const Discord_Public_Key = "e7322523fb86ed64c836a979cf8465fbd436378c653c1db38f9ae87bc62a6fd5"`,
 				FilePath: "tmp.go",
 			},
-			expectedFindings: []report.Finding{},
 		},
 		{
 			cfgName: "generic_with_py_path",
@@ -294,8 +316,7 @@ func TestDetect(t *testing.T) {
 				Raw:      `const Discord_Public_Key = "e7322523fb86ed64c836a979cf8465fbd436378c653c1db38f9ae87bc62a6fd5"`,
 				FilePath: "tmp.go",
 			},
-			expectedFindings: []report.Finding{},
-			wantError:        fmt.Errorf("Discord API key invalid regex secret group 5, max regex secret group 3"),
+			wantError: fmt.Errorf("discord-api-key: invalid regex secret group 5, max regex secret group 3"),
 		},
 		{
 			cfgName: "simple",
@@ -303,7 +324,6 @@ func TestDetect(t *testing.T) {
 				Raw:      `awsToken := \"AKIALALEMEL33243OLIA\"`,
 				FilePath: filepath.Join(configPath, "simple.toml"),
 			},
-			expectedFindings: []report.Finding{},
 		},
 		{
 			cfgName: "allow_global_aws_re",
@@ -311,7 +331,6 @@ func TestDetect(t *testing.T) {
 				Raw:      `awsToken := \"AKIALALEMEL33243OLIA\"`,
 				FilePath: "tmp.go",
 			},
-			expectedFindings: []report.Finding{},
 		},
 		{
 			cfgName: "generic_with_py_path",
@@ -319,7 +338,6 @@ func TestDetect(t *testing.T) {
 				Raw:      `const Discord_Public_Key = "load2523fb86ed64c836a979cf8465fbd436378c653c1db38f9ae87bc62a6fd5"`,
 				FilePath: "tmp.py",
 			},
-			expectedFindings: []report.Finding{},
 		},
 		{
 			cfgName:      "path_only",
@@ -328,29 +346,152 @@ func TestDetect(t *testing.T) {
 				Raw:      `const Discord_Public_Key = "e7322523fb86ed64c836a979cf8465fbd436378c653c1db38f9ae87bc62a6fd5"`,
 				FilePath: ".baseline.json",
 			},
-			expectedFindings: []report.Finding{},
+		},
+		{
+			cfgName: "base64_encoded",
+			fragment: Fragment{
+				Raw:      b64TestValues,
+				FilePath: "tmp.go",
+			},
+			expectedFindings: []report.Finding{
+				{ // Plain text key captured by normal rule
+					Description: "Private Key",
+					Secret:      "-----BEGIN PRIVATE KEY-----\n135f/bRUBHrbHqLY/xS3I7Oth+8rgG+0tBwfMcbk05Sgxq6QUzSYIQAop+WvsTwk2sR+C38g0Mnb\nu+QDkg0spw==\n-----END PRIVATE KEY-----",
+					Match:       "-----BEGIN PRIVATE KEY-----\n135f/bRUBHrbHqLY/xS3I7Oth+8rgG+0tBwfMcbk05Sgxq6QUzSYIQAop+WvsTwk2sR+C38g0Mnb\nu+QDkg0spw==\n-----END PRIVATE KEY-----",
+					File:        "tmp.go",
+					Line:        "\n-----BEGIN PRIVATE KEY-----\n135f/bRUBHrbHqLY/xS3I7Oth+8rgG+0tBwfMcbk05Sgxq6QUzSYIQAop+WvsTwk2sR+C38g0Mnb\nu+QDkg0spw==\n-----END PRIVATE KEY-----",
+					RuleID:      "private-key",
+					Tags:        []string{"key", "private"},
+					StartLine:   2,
+					EndLine:     5,
+					StartColumn: 2,
+					EndColumn:   26,
+					Entropy:     5.350665,
+				},
+				{ // Encoded key captured by custom b64 regex rule
+					Description: "Private Key",
+					Secret:      "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCjQzNWYvYlJVQkhyYkhxTFkveFMzSTdPdGgrOHJnRyswdEJ3Zk1jYmswNVNneHE2UVV6U1lJUUFvcCtXdnNUd2syc1IrQzM4ZzBNbmIKdStRRGtnMHNwdz09Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K",
+					Match:       "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCjQzNWYvYlJVQkhyYkhxTFkveFMzSTdPdGgrOHJnRyswdEJ3Zk1jYmswNVNneHE2UVV6U1lJUUFvcCtXdnNUd2syc1IrQzM4ZzBNbmIKdStRRGtnMHNwdz09Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K",
+					File:        "tmp.go",
+					Line:        "\nprivate_key: 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCjQzNWYvYlJVQkhyYkhxTFkveFMzSTdPdGgrOHJnRyswdEJ3Zk1jYmswNVNneHE2UVV6U1lJUUFvcCtXdnNUd2syc1IrQzM4ZzBNbmIKdStRRGtnMHNwdz09Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K'",
+					RuleID:      "b64-encoded-private-key",
+					Tags:        []string{"key", "private"},
+					StartLine:   8,
+					EndLine:     8,
+					StartColumn: 16,
+					EndColumn:   207,
+					Entropy:     5.3861146,
+				},
+				{ // Encoded key captured by plain text rule using the decoder
+					Description: "Private Key",
+					Secret:      "-----BEGIN PRIVATE KEY-----\n435f/bRUBHrbHqLY/xS3I7Oth+8rgG+0tBwfMcbk05Sgxq6QUzSYIQAop+WvsTwk2sR+C38g0Mnb\nu+QDkg0spw==\n-----END PRIVATE KEY-----",
+					Match:       "-----BEGIN PRIVATE KEY-----\n435f/bRUBHrbHqLY/xS3I7Oth+8rgG+0tBwfMcbk05Sgxq6QUzSYIQAop+WvsTwk2sR+C38g0Mnb\nu+QDkg0spw==\n-----END PRIVATE KEY-----",
+					File:        "tmp.go",
+					Line:        "\nprivate_key: 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCjQzNWYvYlJVQkhyYkhxTFkveFMzSTdPdGgrOHJnRyswdEJ3Zk1jYmswNVNneHE2UVV6U1lJUUFvcCtXdnNUd2syc1IrQzM4ZzBNbmIKdStRRGtnMHNwdz09Ci0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0K'",
+					RuleID:      "private-key",
+					Tags:        []string{"key", "private", "decoded:base64", "decode-depth:1"},
+					StartLine:   8,
+					EndLine:     8,
+					StartColumn: 16,
+					EndColumn:   207,
+					Entropy:     5.350665,
+				},
+				{ // Encoded AWS config with a access key id inside a JWT
+					Description: "AWS IAM Unique Identifier",
+					Secret:      "ASIAIOSFODNN7LXM10JI",
+					Match:       " ASIAIOSFODNN7LXM10JI",
+					File:        "tmp.go",
+					Line:        "\neyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiY29uZmlnIjoiVzJSbFptRjFiSFJkQ25KbFoybHZiaUE5SUhWekxXVmhjM1F0TWdwaGQzTmZZV05qWlhOelgydGxlVjlwWkNBOUlFRlRTVUZKVDFOR1QwUk9UamRNV0UweE1FcEpDbUYzYzE5elpXTnlaWFJmWVdOalpYTnpYMnRsZVNBOUlIZEtZV3h5V0ZWMGJrWkZUVWt2U3pkTlJFVk9SeTlpVUhoU1ptbERXVVZHVlVORWJFVllNVUVLIiwiaWF0IjoxNTE2MjM5MDIyfQ.8gxviXEOuIBQk2LvTYHSf-wXVhnEKC3h4yM5nlOF4zA",
+					RuleID:      "aws-iam-unique-identifier",
+					Tags:        []string{"aws", "identifier", "decoded:base64", "decode-depth:2"},
+					StartLine:   11,
+					EndLine:     11,
+					StartColumn: 39,
+					EndColumn:   344,
+					Entropy:     3.6841838,
+				},
+				{ // Encoded AWS config with a secret access key inside a JWT
+					Description: "AWS Secret Access Key",
+					Secret:      "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEFUCDlEX1A",
+					Match:       "aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEFUCDlEX1A",
+					File:        "tmp.go",
+					Line:        "\neyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiY29uZmlnIjoiVzJSbFptRjFiSFJkQ25KbFoybHZiaUE5SUhWekxXVmhjM1F0TWdwaGQzTmZZV05qWlhOelgydGxlVjlwWkNBOUlFRlRTVUZKVDFOR1QwUk9UamRNV0UweE1FcEpDbUYzYzE5elpXTnlaWFJmWVdOalpYTnpYMnRsZVNBOUlIZEtZV3h5V0ZWMGJrWkZUVWt2U3pkTlJFVk9SeTlpVUhoU1ptbERXVVZHVlVORWJFVllNVUVLIiwiaWF0IjoxNTE2MjM5MDIyfQ.8gxviXEOuIBQk2LvTYHSf-wXVhnEKC3h4yM5nlOF4zA",
+					RuleID:      "aws-secret-access-key",
+					Tags:        []string{"aws", "secret", "decoded:base64", "decode-depth:2"},
+					StartLine:   11,
+					EndLine:     11,
+					StartColumn: 39,
+					EndColumn:   344,
+					Entropy:     4.721928,
+				},
+				{ // Encoded Small secret at the end to make sure it's picked up by the decoding
+					Description: "Small Secret",
+					Secret:      "small-secret",
+					Match:       "small-secret",
+					File:        "tmp.go",
+					Line:        "\nc21hbGwtc2VjcmV0",
+					RuleID:      "small-secret",
+					Tags:        []string{"small", "secret", "decoded:base64", "decode-depth:1"},
+					StartLine:   15,
+					EndLine:     15,
+					StartColumn: 2,
+					EndColumn:   17,
+					Entropy:     3.0849626,
+				},
+				{ // Secret where the decoded match goes outside the encoded value
+					Description: "Overlapping",
+					Secret:      "decoded-secret-value",
+					Match:       "secret=decoded-secret-value",
+					File:        "tmp.go",
+					Line:        "\nsecret=ZGVjb2RlZC1zZWNyZXQtdmFsdWU=",
+					RuleID:      "overlapping",
+					Tags:        []string{"overlapping", "decoded:base64", "decode-depth:1"},
+					StartLine:   18,
+					EndLine:     18,
+					StartColumn: 2,
+					EndColumn:   36,
+					Entropy:     3.3037016,
+				},
+				{ // Secret where the decoded match goes outside the encoded value and then encoded again
+					Description: "Overlapping",
+					Secret:      "decoded-secret-value",
+					Match:       "secret=decoded-secret-value",
+					File:        "tmp.go",
+					Line:        "\nc2VjcmV0PVpHVmpiMlJsWkMxelpXTnlaWFF0ZG1Gc2RXVT0=",
+					RuleID:      "overlapping",
+					Tags:        []string{"overlapping", "decoded:base64", "decode-depth:2"},
+					StartLine:   20,
+					EndLine:     20,
+					StartColumn: 2,
+					EndColumn:   49,
+					Entropy:     3.3037016,
+				},
+			},
 		},
 	}
 
 	for _, tt := range tests {
-		viper.Reset()
-		viper.AddConfigPath(configPath)
-		viper.SetConfigName(tt.cfgName)
-		viper.SetConfigType("toml")
-		err := viper.ReadInConfig()
-		require.NoError(t, err)
+		t.Run(fmt.Sprintf("%s - %s", tt.cfgName, tt.fragment.FilePath), func(t *testing.T) {
+			viper.Reset()
+			viper.AddConfigPath(configPath)
+			viper.SetConfigName(tt.cfgName)
+			viper.SetConfigType("toml")
+			err := viper.ReadInConfig()
+			require.NoError(t, err)
 
-		var vc config.ViperConfig
-		err = viper.Unmarshal(&vc)
-		require.NoError(t, err)
-		cfg, err := vc.Translate()
-		cfg.Path = filepath.Join(configPath, tt.cfgName+".toml")
-		assert.Equal(t, tt.wantError, err)
-		d := NewDetector(cfg)
-		d.baselinePath = tt.baselinePath
+			var vc config.ViperConfig
+			err = viper.Unmarshal(&vc)
+			require.NoError(t, err)
+			cfg, err := vc.Translate()
+			cfg.Path = filepath.Join(configPath, tt.cfgName+".toml")
+			assert.Equal(t, tt.wantError, err)
+			d := NewDetector(cfg)
+			d.MaxDecodeDepth = maxDecodeDepth
+			d.baselinePath = tt.baselinePath
 
-		findings := d.Detect(tt.fragment)
-		assert.ElementsMatch(t, tt.expectedFindings, findings)
+			findings := d.Detect(tt.fragment)
+			assert.ElementsMatch(t, tt.expectedFindings, findings)
+		})
 	}
 }
 
@@ -364,9 +505,10 @@ func TestFromGit(t *testing.T) {
 	}{
 		{
 			source:  filepath.Join(repoBasePath, "small"),
-			cfgName: "simple",
+			cfgName: "simple", // the remote url is `git@github.com:gitleaks/test.git`
 			expectedFindings: []report.Finding{
 				{
+					RuleID:      "aws-access-key",
 					Description: "AWS Access Key",
 					StartLine:   20,
 					EndLine:     20,
@@ -381,12 +523,13 @@ func TestFromGit(t *testing.T) {
 					Author:      "Zachary Rice",
 					Email:       "zricer@protonmail.com",
 					Message:     "Accidentally add a secret",
-					RuleID:      "aws-access-key",
 					Tags:        []string{"key", "AWS"},
 					Entropy:     3.0841837,
 					Fingerprint: "1b6da43b82b22e4eaa10bcf8ee591e91abbfc587:main.go:aws-access-key:20",
+					Link:        "https://github.com/gitleaks/test/blob/1b6da43b82b22e4eaa10bcf8ee591e91abbfc587/main.go#L20",
 				},
 				{
+					RuleID:      "aws-access-key",
 					Description: "AWS Access Key",
 					StartLine:   9,
 					EndLine:     9,
@@ -401,10 +544,10 @@ func TestFromGit(t *testing.T) {
 					Author:      "Zach Rice",
 					Email:       "zricer@protonmail.com",
 					Message:     "adding foo package with secret",
-					RuleID:      "aws-access-key",
 					Tags:        []string{"key", "AWS"},
 					Entropy:     3.0841837,
 					Fingerprint: "491504d5a31946ce75e22554cc34203d8e5ff3ca:foo/foo.go:aws-access-key:9",
+					Link:        "https://github.com/gitleaks/test/blob/491504d5a31946ce75e22554cc34203d8e5ff3ca/foo/foo.go#L9",
 				},
 			},
 		},
@@ -414,6 +557,7 @@ func TestFromGit(t *testing.T) {
 			cfgName: "simple",
 			expectedFindings: []report.Finding{
 				{
+					RuleID:      "aws-access-key",
 					Description: "AWS Access Key",
 					StartLine:   9,
 					EndLine:     9,
@@ -428,10 +572,10 @@ func TestFromGit(t *testing.T) {
 					Author:      "Zach Rice",
 					Email:       "zricer@protonmail.com",
 					Message:     "adding foo package with secret",
-					RuleID:      "aws-access-key",
 					Tags:        []string{"key", "AWS"},
 					Entropy:     3.0841837,
 					Fingerprint: "491504d5a31946ce75e22554cc34203d8e5ff3ca:foo/foo.go:aws-access-key:9",
+					Link:        "https://github.com/gitleaks/test/blob/491504d5a31946ce75e22554cc34203d8e5ff3ca/foo/foo.go#L9",
 				},
 			},
 		},
@@ -441,41 +585,46 @@ func TestFromGit(t *testing.T) {
 	defer moveDotGit(t, ".git", "dotGit")
 
 	for _, tt := range tests {
+		t.Run(strings.Join([]string{tt.cfgName, tt.logOpts}, "/"), func(t *testing.T) {
+			viper.AddConfigPath(configPath)
+			viper.SetConfigName("simple")
+			viper.SetConfigType("toml")
+			err := viper.ReadInConfig()
+			require.NoError(t, err)
 
-		viper.AddConfigPath(configPath)
-		viper.SetConfigName("simple")
-		viper.SetConfigType("toml")
-		err := viper.ReadInConfig()
-		require.NoError(t, err)
+			var vc config.ViperConfig
+			err = viper.Unmarshal(&vc)
+			require.NoError(t, err)
+			cfg, err := vc.Translate()
+			require.NoError(t, err)
+			detector := NewDetector(cfg)
 
-		var vc config.ViperConfig
-		err = viper.Unmarshal(&vc)
-		require.NoError(t, err)
-		cfg, err := vc.Translate()
-		require.NoError(t, err)
-		detector := NewDetector(cfg)
+			var ignorePath string
+			info, err := os.Stat(tt.source)
+			require.NoError(t, err)
 
-		var ignorePath string
-		info, err := os.Stat(tt.source)
-		require.NoError(t, err)
+			if info.IsDir() {
+				ignorePath = filepath.Join(tt.source, ".gitleaksignore")
+			} else {
+				ignorePath = filepath.Join(filepath.Dir(tt.source), ".gitleaksignore")
+			}
+			err = detector.AddGitleaksIgnore(ignorePath)
+			require.NoError(t, err)
 
-		if info.IsDir() {
-			ignorePath = filepath.Join(tt.source, ".gitleaksignore")
-		} else {
-			ignorePath = filepath.Join(filepath.Dir(tt.source), ".gitleaksignore")
-		}
-		err = detector.AddGitleaksIgnore(ignorePath)
-		require.NoError(t, err)
+			gitCmd, err := sources.NewGitLogCmd(tt.source, tt.logOpts)
+			require.NoError(t, err)
 
-		gitCmd, err := sources.NewGitLogCmd(tt.source, tt.logOpts)
-		require.NoError(t, err)
-		findings, err := detector.DetectGit(gitCmd)
-		require.NoError(t, err)
+			remote, err := NewRemoteInfo(scm.NoPlatform, tt.source)
+			require.NoError(t, err)
 
-		for _, f := range findings {
-			f.Match = "" // remove lines cause copying and pasting them has some wack formatting
-		}
-		assert.ElementsMatch(t, tt.expectedFindings, findings)
+			findings, err := detector.DetectGit(gitCmd, remote)
+			require.NoError(t, err)
+
+			for _, f := range findings {
+				f.Match = "" // remove lines cause copying and pasting them has some wack formatting
+			}
+			assert.ElementsMatch(t, tt.expectedFindings, findings)
+		})
 	}
 }
 func TestFromGitStaged(t *testing.T) {
@@ -490,6 +639,7 @@ func TestFromGitStaged(t *testing.T) {
 			cfgName: "simple",
 			expectedFindings: []report.Finding{
 				{
+					RuleID:      "aws-access-key",
 					Description: "AWS Access Key",
 					StartLine:   7,
 					EndLine:     7,
@@ -510,8 +660,8 @@ func TestFromGitStaged(t *testing.T) {
 						"key",
 						"AWS",
 					},
-					RuleID:      "aws-access-key",
 					Fingerprint: "api/api.go:aws-access-key:7",
+					Link:        "",
 				},
 			},
 		},
@@ -538,7 +688,9 @@ func TestFromGitStaged(t *testing.T) {
 		require.NoError(t, err)
 		gitCmd, err := sources.NewGitDiffCmd(tt.source, true)
 		require.NoError(t, err)
-		findings, err := detector.DetectGit(gitCmd)
+		remote, err := NewRemoteInfo(scm.NoPlatform, tt.source)
+		require.NoError(t, err)
+		findings, err := detector.DetectGit(gitCmd, remote)
 		require.NoError(t, err)
 
 		for _, f := range findings {
@@ -603,11 +755,32 @@ func TestFromFiles(t *testing.T) {
 			cfgName:          "simple",
 			expectedFindings: []report.Finding{},
 		},
+		{
+			source:  filepath.Join(repoBasePath, "nogit", ".env.prod"),
+			cfgName: "generic",
+			expectedFindings: []report.Finding{
+				{
+					Description: "Generic API Key",
+					StartLine:   4,
+					EndLine:     4,
+					StartColumn: 5,
+					EndColumn:   35,
+					Match:       "PASSWORD=8ae31cacf141669ddfb5da",
+					Secret:      "8ae31cacf141669ddfb5da",
+					Line:        "\nDB_PASSWORD=8ae31cacf141669ddfb5da",
+					File:        "../testdata/repos/nogit/.env.prod",
+					RuleID:      "generic-api-key",
+					Tags:        []string{},
+					Entropy:     3.5383105,
+					Fingerprint: "../testdata/repos/nogit/.env.prod:generic-api-key:4",
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		viper.AddConfigPath(configPath)
-		viper.SetConfigName("simple")
+		viper.SetConfigName(tt.cfgName)
 		viper.SetConfigType("toml")
 		err := viper.ReadInConfig()
 		require.NoError(t, err)
@@ -630,7 +803,7 @@ func TestFromFiles(t *testing.T) {
 		err = detector.AddGitleaksIgnore(ignorePath)
 		require.NoError(t, err)
 		detector.FollowSymlinks = true
-		paths, err := sources.DirectoryTargets(tt.source, detector.Sema, true)
+		paths, err := sources.DirectoryTargets(tt.source, detector.Sema, true, cfg.Allowlist.PathAllowed)
 		require.NoError(t, err)
 		findings, err := detector.DetectFiles(paths)
 		require.NoError(t, err)
@@ -681,11 +854,242 @@ func TestDetectWithSymlinks(t *testing.T) {
 		cfg, _ := vc.Translate()
 		detector := NewDetector(cfg)
 		detector.FollowSymlinks = true
-		paths, err := sources.DirectoryTargets(tt.source, detector.Sema, true)
+		paths, err := sources.DirectoryTargets(tt.source, detector.Sema, true, cfg.Allowlist.PathAllowed)
 		require.NoError(t, err)
 		findings, err := detector.DetectFiles(paths)
 		require.NoError(t, err)
 		assert.ElementsMatch(t, tt.expectedFindings, findings)
+	}
+}
+
+func TestDetectRuleAllowlist(t *testing.T) {
+	cases := map[string]struct {
+		fragment  Fragment
+		allowlist config.Allowlist
+		expected  []report.Finding
+	}{
+		// Commit / path
+		"commit allowed": {
+			fragment: Fragment{
+				CommitSHA: "41edf1f7f612199f401ccfc3144c2ebd0d7aeb48",
+			},
+			allowlist: config.Allowlist{
+				Commits: []string{"41edf1f7f612199f401ccfc3144c2ebd0d7aeb48"},
+			},
+		},
+		"path allowed": {
+			fragment: Fragment{
+				FilePath: "package-lock.json",
+			},
+			allowlist: config.Allowlist{
+				Paths: []*regexp.Regexp{regexp.MustCompile(`package-lock.json`)},
+			},
+		},
+		"commit AND path allowed": {
+			fragment: Fragment{
+				CommitSHA: "41edf1f7f612199f401ccfc3144c2ebd0d7aeb48",
+				FilePath:  "package-lock.json",
+			},
+			allowlist: config.Allowlist{
+				MatchCondition: config.AllowlistMatchAnd,
+				Commits:        []string{"41edf1f7f612199f401ccfc3144c2ebd0d7aeb48"},
+				Paths:          []*regexp.Regexp{regexp.MustCompile(`package-lock.json`)},
+			},
+		},
+		"commit AND path NOT allowed": {
+			fragment: Fragment{
+				CommitSHA: "41edf1f7f612199f401ccfc3144c2ebd0d7aeb48",
+				FilePath:  "package.json",
+			},
+			allowlist: config.Allowlist{
+				MatchCondition: config.AllowlistMatchAnd,
+				Commits:        []string{"41edf1f7f612199f401ccfc3144c2ebd0d7aeb48"},
+				Paths:          []*regexp.Regexp{regexp.MustCompile(`package-lock.json`)},
+			},
+			expected: []report.Finding{
+				{
+					StartColumn: 50,
+					EndColumn:   60,
+					Line:        "let username = 'james@mail.com';\nlet password = 'Summer2024!';",
+					Match:       "Summer2024!",
+					Secret:      "Summer2024!",
+					File:        "package.json",
+					Entropy:     3.095795154571533,
+					RuleID:      "test-rule",
+				},
+			},
+		},
+		"commit AND path NOT allowed - other conditions": {
+			fragment: Fragment{
+				CommitSHA: "41edf1f7f612199f401ccfc3144c2ebd0d7aeb48",
+				FilePath:  "package-lock.json",
+			},
+			allowlist: config.Allowlist{
+				MatchCondition: config.AllowlistMatchAnd,
+				Commits:        []string{"41edf1f7f612199f401ccfc3144c2ebd0d7aeb48"},
+				Paths:          []*regexp.Regexp{regexp.MustCompile(`package-lock.json`)},
+				Regexes:        []*regexp.Regexp{regexp.MustCompile("password")},
+			},
+			expected: []report.Finding{
+				{
+					StartColumn: 50,
+					EndColumn:   60,
+					Line:        "let username = 'james@mail.com';\nlet password = 'Summer2024!';",
+					Match:       "Summer2024!",
+					Secret:      "Summer2024!",
+					File:        "package-lock.json",
+					Entropy:     3.095795154571533,
+					RuleID:      "test-rule",
+				},
+			},
+		},
+		"commit OR path allowed": {
+			fragment: Fragment{
+				CommitSHA: "41edf1f7f612199f401ccfc3144c2ebd0d7aeb48",
+				FilePath:  "package-lock.json",
+			},
+			allowlist: config.Allowlist{
+				MatchCondition: config.AllowlistMatchOr,
+				Commits:        []string{"704178e7dca77ff143778a31cff0fc192d59b030"},
+				Paths:          []*regexp.Regexp{regexp.MustCompile(`package-lock.json`)},
+			},
+		},
+
+		// Regex / stopwords
+		"regex allowed": {
+			fragment: Fragment{},
+			allowlist: config.Allowlist{
+				Regexes: []*regexp.Regexp{regexp.MustCompile(`(?i)summer.+`)},
+			},
+		},
+		"stopwords allowed": {
+			fragment: Fragment{},
+			allowlist: config.Allowlist{
+				StopWords: []string{"summer"},
+			},
+		},
+		"regex AND stopword allowed": {
+			fragment: Fragment{},
+			allowlist: config.Allowlist{
+				MatchCondition: config.AllowlistMatchAnd,
+				Regexes:        []*regexp.Regexp{regexp.MustCompile(`(?i)summer.+`)},
+				StopWords:      []string{"2024"},
+			},
+		},
+		"regex AND stopword allowed - other conditions": {
+			fragment: Fragment{
+				CommitSHA: "41edf1f7f612199f401ccfc3144c2ebd0d7aeb48",
+				FilePath:  "config.js",
+			},
+			allowlist: config.Allowlist{
+				MatchCondition: config.AllowlistMatchAnd,
+				Commits:        []string{"41edf1f7f612199f401ccfc3144c2ebd0d7aeb48"},
+				Paths:          []*regexp.Regexp{regexp.MustCompile(`config.js`)},
+				Regexes:        []*regexp.Regexp{regexp.MustCompile(`(?i)summer.+`)},
+				StopWords:      []string{"2024"},
+			},
+		},
+		"regex AND stopword NOT allowed - non-git, other conditions": {
+			fragment: Fragment{
+				FilePath: "config.js",
+			},
+			allowlist: config.Allowlist{
+				MatchCondition: config.AllowlistMatchAnd,
+				Commits:        []string{"41edf1f7f612199f401ccfc3144c2ebd0d7aeb48"},
+				Paths:          []*regexp.Regexp{regexp.MustCompile(`config.js`)},
+				Regexes:        []*regexp.Regexp{regexp.MustCompile(`(?i)summer.+`)},
+				StopWords:      []string{"2024"},
+			},
+			expected: []report.Finding{
+				{
+					StartColumn: 50,
+					EndColumn:   60,
+					Line:        "let username = 'james@mail.com';\nlet password = 'Summer2024!';",
+					Match:       "Summer2024!",
+					Secret:      "Summer2024!",
+					File:        "config.js",
+					Entropy:     3.095795154571533,
+					RuleID:      "test-rule",
+				},
+			},
+		},
+		"regex AND stopword NOT allowed": {
+			fragment: Fragment{},
+			allowlist: config.Allowlist{
+				MatchCondition: config.AllowlistMatchAnd,
+				Regexes: []*regexp.Regexp{
+					regexp.MustCompile(`(?i)winter.+`),
+				},
+				StopWords: []string{"2024"},
+			},
+			expected: []report.Finding{
+				{
+					StartColumn: 50,
+					EndColumn:   60,
+					Line:        "let username = 'james@mail.com';\nlet password = 'Summer2024!';",
+					Match:       "Summer2024!",
+					Secret:      "Summer2024!",
+					Entropy:     3.095795154571533,
+					RuleID:      "test-rule",
+				},
+			},
+		},
+		"regex AND stopword NOT allowed - other conditions": {
+			fragment: Fragment{
+				CommitSHA: "a060c9d2d5e90c992763f1bd4c3cd2a6f121241b",
+				FilePath:  "config.js",
+			},
+			allowlist: config.Allowlist{
+				MatchCondition: config.AllowlistMatchAnd,
+				Commits:        []string{"41edf1f7f612199f401ccfc3144c2ebd0d7aeb48"},
+				Paths:          []*regexp.Regexp{regexp.MustCompile(`package-lock.json`)},
+				Regexes:        []*regexp.Regexp{regexp.MustCompile(`(?i)winter.+`)},
+				StopWords:      []string{"2024"},
+			},
+			expected: []report.Finding{
+				{
+					StartColumn: 50,
+					EndColumn:   60,
+					Line:        "let username = 'james@mail.com';\nlet password = 'Summer2024!';",
+					Match:       "Summer2024!",
+					Secret:      "Summer2024!",
+					File:        "config.js",
+					Entropy:     3.095795154571533,
+					RuleID:      "test-rule",
+				},
+			},
+		},
+		"regex OR stopword allowed": {
+			fragment: Fragment{},
+			allowlist: config.Allowlist{
+				MatchCondition: config.AllowlistMatchOr,
+				Regexes:        []*regexp.Regexp{regexp.MustCompile(`(?i)summer.+`)},
+				StopWords:      []string{"winter"},
+			},
+		},
+	}
+
+	raw := `let username = 'james@mail.com';
+let password = 'Summer2024!';`
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			rule := config.Rule{
+				RuleID: "test-rule",
+				Regex:  regexp.MustCompile(`Summer2024!`),
+				Allowlists: []config.Allowlist{
+					tc.allowlist,
+				},
+			}
+			d, err := NewDetectorDefaultConfig()
+			require.NoError(t, err)
+
+			f := tc.fragment
+			f.Raw = raw
+			actual := d.detectRule(f, raw, rule, []EncodedSegment{})
+			if diff := cmp.Diff(tc.expected, actual); diff != "" {
+				t.Errorf("diff: (-want +got)\n%s", diff)
+			}
+		})
 	}
 }
 
