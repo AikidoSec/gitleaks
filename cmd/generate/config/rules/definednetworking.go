@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/secrets"
 	"github.com/zricethezav/gitleaks/v8/config"
 )
@@ -15,15 +16,13 @@ func DefinedNetworkingAPIToken() *config.Rule {
 		RuleID: "defined-networking-api-token",
 
 		// Regex used for detecting secrets. See regex section below for more details
-		Regex: generateSemiGenericRegex([]string{"dnkey"}, `dnkey-[a-z0-9=_\-]{26}-[a-z0-9=_\-]{52}`, true),
+		Regex: utils.GenerateSemiGenericRegex([]string{"dnkey"}, `dnkey-[a-z0-9=_\-]{26}-[a-z0-9=_\-]{52}`, true),
 
 		// Keywords used for string matching on fragments (think of this as a prefilter)
 		Keywords: []string{"dnkey"},
 	}
 
 	// validate
-	tps := []string{
-		generateSampleSecret("dnkey", "dnkey-"+secrets.NewSecret(alphaNumericExtended("26"))+"-"+secrets.NewSecret(alphaNumericExtended("52"))),
-	}
-	return validate(r, tps, nil)
+	tps := utils.GenerateSampleSecrets("dnkey", "dnkey-"+secrets.NewSecret(utils.AlphaNumericExtended("26"))+"-"+secrets.NewSecret(utils.AlphaNumericExtended("52")))
+	return utils.Validate(r, tps, nil)
 }

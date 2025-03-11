@@ -1,9 +1,9 @@
 package rules
 
 import (
-	"regexp"
-
+	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
 	"github.com/zricethezav/gitleaks/v8/config"
+	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
 func PrivateKey() *config.Rule {
@@ -11,7 +11,7 @@ func PrivateKey() *config.Rule {
 	r := config.Rule{
 		Description: "Identified a Private Key, which may compromise cryptographic security and sensitive data encryption.",
 		RuleID:      "private-key",
-		Regex:       regexp.MustCompile(`(?i)-----BEGIN[ A-Z0-9_-]{0,100}PRIVATE KEY( BLOCK)?-----[\s\S-]*KEY( BLOCK)?----`),
+		Regex:       regexp.MustCompile(`(?i)-----BEGIN[ A-Z0-9_-]{0,100}PRIVATE KEY(?: BLOCK)?-----[\s\S-]*?KEY(?: BLOCK)?-----`),
 		Keywords:    []string{"-----BEGIN"},
 	}
 
@@ -20,12 +20,12 @@ func PrivateKey() *config.Rule {
 anything
 -----END PRIVATE KEY-----`,
 		`-----BEGIN RSA PRIVATE KEY-----
-abcdefghijklmnopqrstuvwxyz
+abcdefghijksmnopqrstuvwxyz
 -----END RSA PRIVATE KEY-----
 `,
 		`-----BEGIN PRIVATE KEY BLOCK-----
 anything
 -----END PRIVATE KEY BLOCK-----`,
 	} // gitleaks:allow
-	return validate(r, tps, nil)
+	return utils.Validate(r, tps, nil)
 }

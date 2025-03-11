@@ -1,10 +1,10 @@
 package rules
 
 import (
-	"regexp"
-
+	"github.com/zricethezav/gitleaks/v8/cmd/generate/config/utils"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/secrets"
 	"github.com/zricethezav/gitleaks/v8/config"
+	"github.com/zricethezav/gitleaks/v8/regexp"
 )
 
 func FrameIO() *config.Rule {
@@ -17,8 +17,6 @@ func FrameIO() *config.Rule {
 	}
 
 	// validate
-	tps := []string{
-		generateSampleSecret("frameio", "fio-u-"+secrets.NewSecret(alphaNumericExtended("64"))),
-	}
-	return validate(r, tps, nil)
+	tps := utils.GenerateSampleSecrets("frameio", "fio-u-"+secrets.NewSecret(utils.AlphaNumericExtended("64")))
+	return utils.Validate(r, tps, nil)
 }
