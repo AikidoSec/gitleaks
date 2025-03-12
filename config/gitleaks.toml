@@ -1964,7 +1964,7 @@ stopwords = [
 
 regexTarget = "line"
 regexes = [
-    "scrapi",
+    "docker.io/statsig/scrapi",
     '''arn:aws:secretsmanager:[a-z0-9-]+:\d{12}:secret:[\w+=,.@/-]+'''
 ]
 
