@@ -1964,7 +1964,7 @@ stopwords = [
 
 regexTarget = "line"
 regexes = [
-    '''docker\.io/\w+/\w+:.+''',
+    '''image: docker\.io/\w+/\w+:.+''',
     '''arn:aws:secretsmanager:[a-z0-9-]+:\d{12}:secret:[\w+=,.@/-]+'''
 ]
 
