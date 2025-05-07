@@ -1964,7 +1964,10 @@ stopwords = [
 regexTarget = "line"
 regexes = [
     '''arn:aws:secretsmanager:[a-z0-9-]+:\d{12}:secret:[\w+=,.@/-]+''',
-    '''tableau'''
+]
+
+paths = [
+    '''.*\/tableau_.*\.json$''',
 ]
 
 [[rules]]
