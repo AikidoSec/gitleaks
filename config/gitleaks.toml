@@ -1959,10 +1959,12 @@ stopwords = [
     "zsh-",
     "zsh.",
     "zsh_",
+    "grafana",
 ]
 
 regexTarget = "line"
 regexes = [
+    '''image: docker\.io/\w+/\w+:.+''',
     '''arn:aws:secretsmanager:[a-z0-9-]+:\d{12}:secret:[\w+=,.@/-]+'''
 ]
 
