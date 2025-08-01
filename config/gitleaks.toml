@@ -1960,7 +1960,8 @@ stopwords = [
     "zsh.",
     "zsh_",
     "TwoHopSwapV2Keys",
-    ".tgz"
+    ".tgz",
+    "spotInstrument"
 ]
 
 regexTarget = "line"
