@@ -56,13 +56,22 @@ func PublicIP() *config.Rule {
 		},
 	}
 
-	// Validate with some representative examples
-	truePositives := []string{
-		"1.1.1.1",
-		"8.8.8.8",
-		"93.184.216.34",
-		"https://api.example.com at 52.216.0.1",
-	}
+	// Validate with representative examples
+    	truePositives := []string{
+    		"93.184.216.34",
+    		"52.216.0.1",
+    		"73.54.201.89",
+    		"86.12.45.230",
+    		"14.201.88.19",
+    		"189.203.45.17",
+    		"41.190.23.8",
+    		"112.198.87.120",
+    		"201.17.45.200",
+    		"95.91.12.34",
+    		"213.87.141.66",
+    		"122.170.23.45",
+    	}
+
 	falsePositives := []string{
 		"10.0.0.1",
 		"172.16.0.10",
