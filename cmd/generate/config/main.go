@@ -141,6 +141,7 @@ func main() {
 		rules.PostManAPI(),
 		rules.Prefect(),
 		rules.PrivateKey(),
+		rules.PublicKey(),
 		rules.PublicIP(),
 		rules.PublicIPv6(),
 		rules.PulumiAPIToken(),
