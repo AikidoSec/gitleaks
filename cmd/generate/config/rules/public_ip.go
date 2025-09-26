@@ -10,8 +10,8 @@ import (
 func PublicIP() *config.Rule {
 	// Strict IPv4 octet (0-255)
 	ipOctet := `(?:25[0-5]|2[0-4]\d|1?\d{1,2})`
-	// Full IPv4
-	ipv4 := `\b(?:` + ipOctet + `\.){3}` + ipOctet + `\b`
+	// Full IPv4 with optional CIDR suffix (/0 - /32)
+	ipv4 := `\b(?:` + ipOctet + `\.){3}` + ipOctet + `(?:/(?:3[0-2]|[12]?\d))?\b`
 
 	r := config.Rule{
 		Description: "Public IPv4 address",
@@ -37,12 +37,12 @@ func PublicIP() *config.Rule {
 				regexp.MustCompile(`^100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.`),
 
 				// Test/Documentation nets
-				regexp.MustCompile(`^192\.0\.2\.`),     // TEST-NET-1
-				regexp.MustCompile(`^198\.51\.100\.`),  // TEST-NET-2
-				regexp.MustCompile(`^203\.0\.113\.`),   // TEST-NET-3
+				regexp.MustCompile(`^192\.0\.2\.`),    // TEST-NET-1
+				regexp.MustCompile(`^198\.51\.100\.`), // TEST-NET-2
+				regexp.MustCompile(`^203\.0\.113\.`),  // TEST-NET-3
 
 				// Benchmarking / special-purpose
-				regexp.MustCompile(`^198\.18\.`),       // 198.18.0.0/15 (incl. 198.19.x.x)
+				regexp.MustCompile(`^198\.18\.`), // 198.18.0.0/15 (incl. 198.19.x.x)
 				regexp.MustCompile(`^198\.19\.`),
 				regexp.MustCompile(`^192\.0\.0\.`),
 
@@ -56,21 +56,22 @@ func PublicIP() *config.Rule {
 		},
 	}
 
-	// Validate with representative examples
-    	truePositives := []string{
-    		"93.184.216.34",
-    		"52.216.0.1",
-    		"73.54.201.89",
-    		"86.12.45.230",
-    		"14.201.88.19",
-    		"189.203.45.17",
-    		"41.190.23.8",
-    		"112.198.87.120",
-    		"201.17.45.200",
-    		"95.91.12.34",
-    		"213.87.141.66",
-    		"122.170.23.45",
-    	}
+	// Validate with representative examples (including CIDR)
+	truePositives := []string{
+		"93.184.216.34",
+		"52.216.0.1",
+		"73.54.201.89",
+		"86.12.45.230",
+		"14.201.88.19",
+		"189.203.45.17",
+		"41.190.23.8",
+		"112.198.87.120",
+		"201.17.45.200",
+		"95.91.12.34",
+		"213.87.141.66",
+		"122.170.23.45",
+		"101.204.83.101/32",
+	}
 
 	falsePositives := []string{
 		"10.0.0.1",
