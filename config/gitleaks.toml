@@ -2463,6 +2463,46 @@ keywords = [
 ]
 
 [[rules]]
+id = "public-ip-address"
+description = "Public IPv4 address"
+regex = '''(?i)\b(\b(?:(?:25[0-5]|2[0-4]\d|1?\d{1,2})\.){3}(?:25[0-5]|2[0-4]\d|1?\d{1,2})\b)(?:['|\"|\n|\r|\s|\x60|;]|$)'''
+tags = [
+    "ip","ipv4","infrastructure",
+]
+
+[rules.allowlist]
+
+regexTarget = "match"
+regexes = [
+    "^10\.","^172\.(?:1[6-9]|2\d|3[0-1])\.","^192\.168\.","^127\.","^169\.254\.","^100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.","^192\.0\.2\.","^198\.51\.100\.","^203\.0\.113\.","^198\.18\.","^198\.19\.","^192\.0\.0\.","^(?:22[4-9]|23\d|24\d|25[0-5])\.","^0\.","^255\.255\.255\.255$",
+]
+
+[[rules]]
+id = "public-ipv6-address"
+description = "Public IPv6 address"
+regex = '''(?i)\b(((?:(?:(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}|(?:[0-9a-f]{1,4}:){1,7}:|(?:[0-9a-f]{1,4}:){1,6}:[0-9a-f]{1,4}|(?:[0-9a-f]{1,4}:){1,5}(?::[0-9a-f]{1,4}){1,2}|(?:[0-9a-f]{1,4}:){1,4}(?::[0-9a-f]{1,4}){1,3}|(?:[0-9a-f]{1,4}:){1,3}(?::[0-9a-f]{1,4}){1,4}|(?:[0-9a-f]{1,4}:){1,2}(?::[0-9a-f]{1,4}){1,5}|[0-9a-f]{1,4}:(?::[0-9a-f]{1,4}){1,6}|:(?::[0-9a-f]{1,4}){1,7})|(?:(?:[0-9a-f]{1,4}:){1,4}(?:(?:25[0-5]|2[0-4]\d|1?\d{1,2})\.){3}(?:25[0-5]|2[0-4]\d|1?\d{1,2})|::(?:[0-9a-f]{1,4}:){0,3}(?:(?:25[0-5]|2[0-4]\d|1?\d{1,2})\.){3}(?:25[0-5]|2[0-4]\d|1?\d{1,2}))))(?:\])?)(?:['|\"|\n|\r|\s|\x60|;]|$)'''
+tags = [
+    "ip","ipv6","infrastructure",
+]
+
+[rules.allowlist]
+
+regexes = [
+    "(?i)^::$","(?i)^::1$","(?i)^f[c-d][0-9a-f]{0,2}:","(?i)^fe80:","(?i)^fec0:","(?i)^ff[0-9a-f]{2}:","(?i)^::ffff:","(?i)^2001:db8:",
+]
+
+[[rules]]
+id = "public-key"
+description = "Public key material (PEM or SSH)"
+regex = '''(?i)(?:-----BEGIN[ A-Z0-9_-]{0,100}PUBLIC KEY(?: BLOCK)?-----[\s\S]*?-----END[ A-Z0-9_-]{0,100}PUBLIC KEY(?: BLOCK)?-----|(?:ssh-(?:rsa|ed25519)|ecdsa-sha2-nistp(?:256|384|521))\s+[A-Za-z0-9+/=._-]{20,})(?:['"\s\x60;]|$)'''
+keywords = [
+    "-----begin","ssh-","ecdsa-sha2-nistp",
+]
+tags = [
+    "key","public-key","crypto",
+]
+
+[[rules]]
 id = "pulumi-api-token"
 description = "Found a Pulumi API token, posing a risk to infrastructure as code services and cloud resource management."
 regex = '''(?i)\b(pul-[a-f0-9]{40})(?:['|\"|\n|\r|\s|\x60|;]|$)'''
