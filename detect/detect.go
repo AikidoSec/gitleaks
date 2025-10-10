@@ -425,7 +425,7 @@ func findFullLine(fragment Fragment, loc Location, secret string) string {
 	// we do not want to capture the ending line, but end at the last char of the line before.
 	// So if detected up line 6, column 1, we need to change this to last character of line 5.
 	if loc.startLine+1 == loc.endLine && loc.endColumn == 1 {
-		endLineIndex = endLineIndex - 1
+		endLineIndex = findIndexAfterPreviousNewline(fragment.Raw, endLineIndex)
 	}
 
 	// Return substring between indices, trimmed of whitespace.
