@@ -425,7 +425,7 @@ func findFullLine(fragment Fragment, loc Location, secret string) string {
 	// we do not want to capture the ending line, but end at the last char of the line before.
 	// So if detected up line 6, column 1, we need to change this to last character of line 5.
 	if loc.startLine+1 == loc.endLine && loc.endColumn == 1 {
-		endLineIndex = findIndexAfterPreviousNewline(fragment.Raw, endLineIndex)
+		endLineIndex = findIndexOfEndOfLine(secretStartIndex)
 	}
 
 	// Return substring between indices, trimmed of whitespace.
@@ -459,4 +459,33 @@ func findIndexAfterPreviousNewline(fragment string, startIdx int) int {
 
 	// If no newline found within 250 chars, return the minimum index we reached
 	return minIdx
+}
+
+// For a given startIdx, looks for the end of that line (will look max 250 chars ahead)
+func findIndexOfEndOfLine(fragment string, startIdx int) int {
+	// if startIdx is out of range, return len(fragment)
+	if startIdx >= len(fragment) {
+		return len(fragment)
+	}
+
+	re, err := regexp.Compile(`\r|\n`)
+	if err != nil {
+		return len(fragment)
+	}
+
+	// limit lookahead to 250 chars
+	maxIdx := startIdx + 250
+	if maxIdx > len(fragment) {
+		maxIdx = len(fragment)
+	}
+
+	for i := startIdx; i < maxIdx; i++ {
+		char := fragment[i]
+		if isNewline := re.Match([]byte{char}); isNewline {
+			return i
+		}
+	}
+
+	// If no newline found within 250 chars, return the furthest index we checked
+	return maxIdx
 }
