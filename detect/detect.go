@@ -421,6 +421,13 @@ func findFullLine(fragment Fragment, loc Location, secret string) string {
 
 	endLineIndex := loc.endLineIndex
 
+	// Sometimes gitleaks will detect up the 1 column of the next line, in those cases
+	// we do not want to capture the ending line, but end at the last char of the line before.
+	// So if detected up line 6, column 1, we need to change this to last character of line 5.
+	if loc.startLine+1 == loc.endLine && loc.endColumn == 1 {
+		endLineIndex = loc.startLineIndex + loc.endColumn
+	}
+
 	// Return substring between indices, trimmed of whitespace.
 	return strings.TrimSpace(fragment.Raw[precedingNewLineIndex:endLineIndex])
 }
@@ -442,14 +449,14 @@ func findIndexAfterPreviousNewline(fragment string, startIdx int) int {
 	if minIdx < 0 {
 		minIdx = 0
 	}
-	
+
 	for i := startIdx; i >= minIdx; i-- {
 		char := fragment[i]
 		if isNewline := re.Match([]byte{char}); isNewline {
 			return i
 		}
 	}
-	
+
 	// If no newline found within 250 chars, return the minimum index we reached
 	return minIdx
 }
