@@ -1,8 +1,7 @@
 package rules
 
 import (
-	"regexp"
-
+	regexp "github.com/wasilibs/go-re2"
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/secrets"
 	"github.com/zricethezav/gitleaks/v8/config"
 )
