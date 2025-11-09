@@ -1,9 +1,8 @@
 package config
 
 import (
+	"regexp"
 	"strings"
-
-	regexp "github.com/wasilibs/go-re2"
 )
 
 // Allowlist allows a rule to be ignored for specific

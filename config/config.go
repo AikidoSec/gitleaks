@@ -3,11 +3,11 @@ package config
 import (
 	_ "embed"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
-	regexp "github.com/wasilibs/go-re2"
 )
 
 //go:embed gitleaks.toml

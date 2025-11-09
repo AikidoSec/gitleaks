@@ -1,10 +1,10 @@
 package config
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	regexp "github.com/wasilibs/go-re2"
 )
 
 func TestCommitAllowed(t *testing.T) {

@@ -1,6 +1,6 @@
 module github.com/zricethezav/gitleaks/v8
 
-go 1.23
+go 1.19
 
 require (
 	github.com/BobuSumisu/aho-corasick v1.0.3
@@ -11,7 +11,7 @@ require (
 	github.com/rs/zerolog v1.26.1
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.8.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.7.0
 )
 
 require (
@@ -22,8 +22,6 @@ require (
 	github.com/muesli/reflow v0.2.1-0.20210115123740-9e1d0d53df68 // indirect
 	github.com/muesli/termenv v0.15.1 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
-	github.com/tetratelabs/wazero v1.8.2 // indirect
-	github.com/wasilibs/wazero-helpers v0.0.0-20240620070341-3dff1577cd52 // indirect
 )
 
 require (
@@ -41,11 +39,10 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
-	github.com/wasilibs/go-re2 v1.8.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/text v0.3.8 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
