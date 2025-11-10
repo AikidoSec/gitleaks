@@ -3,8 +3,8 @@ package rules
 import (
 	b64 "encoding/base64"
 	"fmt"
+	"regexp"
 
-	regexp "github.com/wasilibs/go-re2"
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 

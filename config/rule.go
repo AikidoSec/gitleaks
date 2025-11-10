@@ -1,7 +1,7 @@
 package config
 
 import (
-	regexp "github.com/wasilibs/go-re2"
+	"regexp"
 )
 
 // Rules contain information that define details on how to detect secrets
