@@ -2,10 +2,10 @@ package rules
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/rs/zerolog/log"
+	regexp "github.com/wasilibs/go-re2"
 	"github.com/zricethezav/gitleaks/v8/config"
 	"github.com/zricethezav/gitleaks/v8/detect"
 )
