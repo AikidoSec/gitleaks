@@ -1487,4 +1487,6 @@ var DefaultStopWords = []string{
 	"zsh-",
 	"zsh.",
 	"zsh_",
+	".tgz",
+	"spotInstrument",
 }

@@ -1,6 +1,8 @@
 package rules
 
 import (
+	regexp "github.com/wasilibs/go-re2"
+
 	"github.com/zricethezav/gitleaks/v8/config"
 )
 
@@ -33,7 +35,12 @@ func GenericCredential() *config.Rule {
 		},
 		Entropy: 3.5,
 		Allowlist: config.Allowlist{
-			StopWords: DefaultStopWords,
+			StopWords:   DefaultStopWords,
+			RegexTarget: "line",
+			Regexes: []*regexp.Regexp{
+				regexp.MustCompile(`arn:aws:secretsmanager:[a-z0-9-]+:\d{12}:secret:[\w+=,.@/-]+`),
+				regexp.MustCompile(`InstrumentationKey=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}.*monitor.azure.com`),
+			},
 		},
 	}
 

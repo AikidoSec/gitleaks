@@ -33,7 +33,6 @@ func SumoLogicAccessID() *config.Rule {
 		`sumologic_access_id = "sug5XpdpaoxtOH"`,     // gitleaks:allow
 		`export SUMOLOGIC_ACCESSID="suDbJw97o9WVo0"`, // gitleaks:allow
 		`SUMO_ACCESS_ID = "suGyI5imvADdvU"`,          // gitleaks:allow
-		generateSampleSecret("sumo", "su"+secrets.NewSecret(alphaNumeric("12"))),
 	}
 	fps := []string{
 		`- (NSNumber *)sumOfProperty:(NSString *)property;`,

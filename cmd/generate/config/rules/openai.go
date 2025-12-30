@@ -1,6 +1,8 @@
 package rules
 
 import (
+	regexp "github.com/wasilibs/go-re2"
+
 	"github.com/zricethezav/gitleaks/v8/cmd/generate/secrets"
 	"github.com/zricethezav/gitleaks/v8/config"
 )
@@ -10,7 +12,7 @@ func OpenAI() *config.Rule {
 	r := config.Rule{
 		RuleID:      "openai-api-key",
 		Description: "Found an OpenAI API Key, posing a risk of unauthorized access to AI services and data manipulation.",
-		Regex:       generateUniqueTokenRegex(`sk-[a-zA-Z0-9]{20}T3BlbkFJ[a-zA-Z0-9]{20}`, true),
+		Regex:       regexp.MustCompile(`(sk-(?:proj|svcacct|admin)-(?:[A-Za-z0-9_-]{74}|[A-Za-z0-9_-]{58})T3BlbkFJ(?:[A-Za-z0-9_-]{74}|[A-Za-z0-9_-]{58})\b|sk-[a-zA-Z0-9]{20}T3BlbkFJ[a-zA-Z0-9]{20})(?:[\x60'"\s;]|\\[nr]|$)`),
 
 		Keywords: []string{
 			"T3BlbkFJ",

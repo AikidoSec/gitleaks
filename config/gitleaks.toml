@@ -94,14 +94,18 @@ id = "artifactory-api-key"
 description = "Detected an Artifactory api key, posing a risk unauthorized access to the central repository."
 regex = '''\bAKCp[A-Za-z0-9]{69}\b'''
 entropy = 4.5
-keywords = ["akcp"]
+keywords = [
+    "akcp",
+]
 
 [[rules]]
 id = "artifactory-reference-token"
 description = "Detected an Artifactory reference token, posing a risk of impersonation and unauthorized access to the central repository."
 regex = '''\bcmVmd[A-Za-z0-9]{59}\b'''
 entropy = 4.5
-keywords = ["cmvmd"]
+keywords = [
+    "cmvmd",
+]
 
 [[rules]]
 id = "asana-client-id"
@@ -497,6 +501,11 @@ keywords = [
 ]
 
 [rules.allowlist]
+regexTarget = "line"
+regexes = [
+    '''arn:aws:secretsmanager:[a-z0-9-]+:\d{12}:secret:[\w+=,.@/-]+''',
+    '''InstrumentationKey=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}.*monitor.azure.com'''
+]
 stopwords = [
     "000000",
     "aaaaaa",
@@ -1977,13 +1986,6 @@ stopwords = [
     "spotInstrument"
 ]
 
-regexTarget = "line"
-regexes = [
-    '''arn:aws:secretsmanager:[a-z0-9-]+:\d{12}:secret:[\w+=,.@/-]+''',
-    '''InstrumentationKey=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}.*monitor.azure.com'''
-
-]
-
 [[rules]]
 id = "github-app-token"
 description = "Identified a GitHub App Token, which may compromise GitHub application integrations and source code security."
@@ -2568,19 +2570,25 @@ keywords = [
 id = "settlemint-application-access-token"
 description = "Found a Settlemint Application Access Token."
 regex = '''\b((sm_aat_)[a-zA-Z0-9]+)(?:['|\"|\n|\r|\s|\x60|;]|$)'''
-keywords = ["sm_aat"]
+keywords = [
+    "sm_aat",
+]
 
 [[rules]]
 id = "settlemint-personal-access-token"
 description = "Found a Settlemint Personal Access Token."
 regex = '''\b((sm_pat_)[a-zA-Z0-9]+)(?:['|\"|\n|\r|\s|\x60|;]|$)'''
-keywords = ["sm_pat"]
+keywords = [
+    "sm_pat",
+]
 
 [[rules]]
 id = "settlemint-service-access-token"
 description = "Found a Settlemint Service Access Token."
 regex = '''\b((sm_sat_)[a-zA-Z0-9]+)(?:['|\"|\n|\r|\s|\x60|;]|$)'''
-keywords = ["sm_sat"]
+keywords = [
+    "sm_sat",
+]
 
 [[rules]]
 id = "shippo-api-token"
@@ -2753,10 +2761,9 @@ keywords = [
 ]
 
 [rules.allowlist]
-
 regexTarget = "line"
 regexes = [
-    "sumOf",
+    "sumOf"
 ]
 
 [[rules]]

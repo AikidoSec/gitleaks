@@ -2,7 +2,9 @@ package main
 
 import (
 	"os"
+	"strings"
 	"text/template"
+	"unicode"
 
 	"github.com/rs/zerolog/log"
 
@@ -32,6 +34,8 @@ func main() {
 		rules.AlgoliaApiKey(),
 		rules.AlibabaAccessKey(),
 		rules.AlibabaSecretKey(),
+		rules.ArtifactoryAPIKey(),
+		rules.ArtifactoryReferenceToken(),
 		rules.AsanaClientID(),
 		rules.AsanaClientSecret(),
 		rules.Atlassian(),
@@ -210,7 +214,37 @@ func main() {
 		ruleLookUp[rule.RuleID] = *rule
 	}
 
-	tmpl, err := template.ParseFiles(templatePath)
+	funcs := template.FuncMap{
+		// Simple arithmetic helpers for templates.
+		"sub":       func(a, b int) int { return a - b },
+		"hasPrefix": func(s, prefix string) bool { return strings.HasPrefix(s, prefix) },
+
+		// tomlRegex renders allowlist regexes in a TOML-safe way while keeping output close
+		// to the existing config:
+		// - Simple identifiers like "sumOf" use basic strings.
+		// - Everything else uses TOML literal strings ('''...''') so backslashes don't need escaping.
+		"tomlRegex": func(v any) string {
+			s, ok := v.(interface{ String() string })
+			if !ok {
+				return `""`
+			}
+			str := s.String()
+
+			isSimple := true
+			for _, r := range str {
+				if !(unicode.IsLetter(r) || unicode.IsNumber(r) || r == '_') {
+					isSimple = false
+					break
+				}
+			}
+			if isSimple {
+				return `"` + str + `"`
+			}
+			return "'''" + str + "'''"
+		},
+	}
+
+	tmpl, err := template.New(templatePath).Funcs(funcs).ParseFiles(templatePath)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to parse template")
 	}
@@ -220,7 +254,9 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to create rules.toml")
 	}
 
-	if err = tmpl.Execute(f, config.Config{Rules: ruleLookUp}); err != nil {
+	// ParseFiles names templates by their base filename, not full path.
+	// Since we build the root with templatePath, execute the parsed template by base name.
+	if err = tmpl.ExecuteTemplate(f, "config.tmpl", config.Config{Rules: ruleLookUp}); err != nil {
 		log.Fatal().Err(err).Msg("could not execute template")
 	}
 

@@ -45,20 +45,30 @@ tags = [
 ]{{ end }}
 {{ if or $rule.Allowlist.Regexes $rule.Allowlist.Paths $rule.Allowlist.Commits $rule.Allowlist.StopWords }}
 [rules.allowlist]
-{{ with $rule.Allowlist.RegexTarget }}
-regexTarget = "{{ . }}"{{ end -}}
+{{- with $rule.Allowlist.RegexTarget }}
+regexTarget = "{{ . }}"
+{{- end }}
 {{- with $rule.Allowlist.Regexes }}
+{{ $n := len . -}}
 regexes = [
-    {{ range $j, $regex := . }}"{{ $regex }}",{{ end }}
-]{{ end }}
+{{- range $i, $regex := . }}
+    {{ tomlRegex $regex }}{{ if lt $i (sub $n 1) }},{{ end }}
+{{- end }}
+]
+{{- end }}
 {{- with $rule.Allowlist.Paths }}paths = [
     {{ range $j, $path := . }}"{{ $path }}",{{ end }}
 ]{{ end }}
 {{- with $rule.Allowlist.Commits }}commits = [
     {{ range $j, $commit := . }}"{{ $commit }}",{{ end }}
 ]{{ end }}
-{{- with $rule.Allowlist.StopWords }}stopwords = [{{ range $j, $stopword := . }}
-    "{{ $stopword }}",{{ end }}
-]{{ end }}
+{{- with $rule.Allowlist.StopWords }}
+{{ $n := len . -}}
+stopwords = [
+{{- range $i, $stopword := . }}
+    "{{ $stopword }}"{{ if lt $i (sub $n 1) }},{{ end }}
+{{- end }}
+]
+{{- end }}
 {{ end }}
 {{ end }}
