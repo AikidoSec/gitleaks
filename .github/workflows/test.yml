@@ -25,5 +25,6 @@ jobs:
       - name: Test
         run: make test
 
-      - name: Validate Config
-        run: go generate ./... && git diff --exit-code
+      # we periodically copy the config from the upstream repo, so no need to generate/validate it here
+      # - name: Validate Config
+      #   run: go generate ./... && git diff --exit-code
