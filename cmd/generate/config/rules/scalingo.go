@@ -17,7 +17,8 @@ func ScalingoAPIToken() *config.Rule {
 
 	// validate
 	tps := []string{
-		generateSampleSecret("scalingo", "tk-us-"+secrets.NewSecret(alphaNumericExtendedShort("48"))),
+		// Avoid '-' at the end; with \b boundaries a trailing '-' would fail to match.
+		generateSampleSecret("scalingo", "tk-us-"+secrets.NewSecret(alphaNumeric("48"))),
 	}
 	return validate(r, tps, nil)
 }
