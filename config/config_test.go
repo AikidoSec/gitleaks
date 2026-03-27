@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 
 	regexp "github.com/wasilibs/go-re2"
@@ -12,6 +13,77 @@ import (
 )
 
 const configPath = "../testdata/config/"
+
+type allowlistSnapshot struct {
+	Description string
+	RegexTarget string
+	Regexes     []string
+	Paths       []string
+	Commits     []string
+	StopWords   []string
+}
+
+type ruleSnapshot struct {
+	Description string
+	RuleID      string
+	Entropy     float64
+	SecretGroup int
+	Regex       string
+	Path        string
+	Tags        []string
+	Keywords    []string
+	Allowlist   allowlistSnapshot
+}
+
+func snapshotRegexp(re *regexp.Regexp) string {
+	if re == nil {
+		return ""
+	}
+	return re.String()
+}
+
+func snapshotRegexps(res []*regexp.Regexp) []string {
+	if len(res) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(res))
+	for _, re := range res {
+		out = append(out, snapshotRegexp(re))
+	}
+	return out
+}
+
+func snapshotRules(rules map[string]Rule) map[string]ruleSnapshot {
+	if rules == nil {
+		return nil
+	}
+	out := make(map[string]ruleSnapshot, len(rules))
+	for id, r := range rules {
+		rs := ruleSnapshot{
+			Description: r.Description,
+			RuleID:      r.RuleID,
+			Entropy:     r.Entropy,
+			SecretGroup: r.SecretGroup,
+			Regex:       snapshotRegexp(r.Regex),
+			Path:        snapshotRegexp(r.Path),
+			Tags:        r.Tags,
+			Keywords:    r.Keywords,
+			Allowlist: allowlistSnapshot{
+				Description: r.Allowlist.Description,
+				RegexTarget: r.Allowlist.RegexTarget,
+				Regexes:     snapshotRegexps(r.Allowlist.Regexes),
+				Paths:       snapshotRegexps(r.Allowlist.Paths),
+				Commits:     r.Allowlist.Commits,
+				StopWords:   r.Allowlist.StopWords,
+			},
+		}
+		// Make slice comparisons stable even if upstream order changes.
+		sort.Strings(rs.Allowlist.Regexes)
+		sort.Strings(rs.Allowlist.Paths)
+		out[id] = rs
+	}
+	return out
+}
 
 func TestTranslate(t *testing.T) {
 	tests := []struct {
@@ -135,6 +207,6 @@ func TestTranslate(t *testing.T) {
 		require.NoError(t, err)
 		cfg, err := vc.Translate()
 		assert.Equal(t, tt.wantError, err)
-		assert.Equal(t, cfg.Rules, tt.cfg.Rules)
+		assert.Equal(t, snapshotRules(tt.cfg.Rules), snapshotRules(cfg.Rules))
 	}
 }

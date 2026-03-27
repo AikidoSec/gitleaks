@@ -442,14 +442,14 @@ func findIndexAfterPreviousNewline(fragment string, startIdx int) int {
 	if minIdx < 0 {
 		minIdx = 0
 	}
-	
+
 	for i := startIdx; i >= minIdx; i-- {
 		char := fragment[i]
 		if isNewline := re.Match([]byte{char}); isNewline {
 			return i
 		}
 	}
-	
+
 	// If no newline found within 250 chars, return the minimum index we reached
 	return minIdx
 }
