@@ -871,6 +871,15 @@ func TestFindSecretLine(t *testing.T) {
 			secret:   "secret",
 			expected: "This is a line with a secret in between",
 		},
+		{
+			name: "Index on start of next line",
+			fragment: Fragment{
+				Raw: "\n\nThis is a line with a secret in between\nThis is another line",
+			},
+			loc:      Location{startLineIndex: 2, endLineIndex: 62, startColumn: 22, endColumn: 1, startLine: 2, endLine: 3},
+			secret:   "secret",
+			expected: "This is a line with a secret in between",
+		},
 	}
 
 	for _, tt := range tests {
