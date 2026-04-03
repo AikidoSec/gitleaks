@@ -1,5 +1,7 @@
 # Gitleaks
 
+dummy commit
+
 ```
 ┌─○───┐
 │ │╲  │
