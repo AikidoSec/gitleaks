@@ -1,6 +1,6 @@
 module github.com/zricethezav/gitleaks/v8
 
-go 1.24.11
+go 1.25.0
 
 require (
 	github.com/BobuSumisu/aho-corasick v1.0.3
@@ -43,7 +43,7 @@ require (
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/wasilibs/go-re2 v1.8.0
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
 	golang.org/x/text v0.3.8 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
